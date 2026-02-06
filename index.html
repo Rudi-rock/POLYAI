@@ -1,0 +1,1400 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>POLYAI - CLASSIFIED NEURAL MESH SYSTEM</title>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Share+Tech+Mono&display=swap');
+        
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        :root {
+            --neon-green: #00ff41;
+            --neon-cyan: #00ffff;
+            --neon-purple: #bf00ff;
+            --neon-red: #ff0040;
+            --dark-bg: #000000;
+            --panel-bg: rgba(0, 20, 10, 0.95);
+            --border-color: rgba(0, 255, 65, 0.4);
+        }
+        
+        body {
+            font-family: 'Share Tech Mono', monospace;
+            background: var(--dark-bg);
+            color: var(--neon-green);
+            overflow: hidden;
+            position: relative;
+            height: 100vh;
+        }
+        
+        /* Scanline effect */
+        body::before {
+            content: '';
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: repeating-linear-gradient(
+                0deg,
+                transparent,
+                transparent 2px,
+                rgba(0, 255, 65, 0.02) 2px,
+                rgba(0, 255, 65, 0.02) 4px
+            );
+            pointer-events: none;
+            z-index: 9999;
+            animation: scanlines 8s linear infinite;
+        }
+        
+        @keyframes scanlines {
+            0% { transform: translateY(0); }
+            100% { transform: translateY(10px); }
+        }
+        
+        /* Matrix rain background */
+        #matrix-canvas {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: 0;
+            opacity: 0.08;
+        }
+        
+        /* Main dashboard grid */
+        .dashboard {
+            position: relative;
+            z-index: 2;
+            display: grid;
+            grid-template-columns: 240px 1fr 360px 280px;
+            grid-template-rows: 50px 1fr 180px;
+            gap: 2px;
+            height: 100vh;
+            background: rgba(0, 255, 65, 0.05);
+            padding: 2px;
+        }
+        
+        /* Header */
+        .header {
+            grid-column: 1 / -1;
+            background: var(--panel-bg);
+            border: 1px solid var(--border-color);
+            padding: 12px 25px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            position: relative;
+            box-shadow: 0 0 20px rgba(0, 255, 65, 0.3);
+        }
+        
+        .header::after {
+            content: '';
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            height: 1px;
+            background: linear-gradient(90deg, transparent, var(--neon-green), transparent);
+            animation: glow 2s ease-in-out infinite;
+        }
+        
+        @keyframes glow {
+            0%, 100% { opacity: 0.5; }
+            50% { opacity: 1; }
+        }
+        
+        .logo {
+            font-size: 28px;
+            font-weight: 700;
+            letter-spacing: 8px;
+            text-shadow: 
+                0 0 10px var(--neon-green),
+                0 0 20px var(--neon-green),
+                0 0 30px var(--neon-green);
+            animation: glitch 4s infinite;
+        }
+        
+        @keyframes glitch {
+            0%, 90%, 100% { 
+                transform: translate(0); 
+                text-shadow: 0 0 10px var(--neon-green), 0 0 20px var(--neon-green);
+            }
+            91% { 
+                transform: translate(-3px, 2px); 
+                text-shadow: 2px 0 var(--neon-cyan), -2px 0 var(--neon-purple);
+            }
+            93% { 
+                transform: translate(3px, -2px); 
+                text-shadow: -2px 0 var(--neon-cyan), 2px 0 var(--neon-purple);
+            }
+            95% { 
+                transform: translate(-2px, -2px); 
+            }
+        }
+        
+        .subtitle {
+            font-size: 9px;
+            letter-spacing: 2px;
+            color: var(--neon-cyan);
+            margin-top: 5px;
+        }
+        
+        .tag {
+            display: inline-block;
+            padding: 3px 8px;
+            font-size: 7px;
+            border: 1px solid;
+            margin-left: 8px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+        
+        .tag.secure {
+            border-color: var(--neon-green);
+            color: var(--neon-green);
+            box-shadow: 0 0 5px var(--neon-green);
+        }
+        
+        .tag.offline {
+            border-color: var(--neon-cyan);
+            color: var(--neon-cyan);
+            box-shadow: 0 0 5px var(--neon-cyan);
+        }
+        
+        .tag.encrypted {
+            border-color: var(--neon-purple);
+            color: var(--neon-purple);
+            box-shadow: 0 0 5px var(--neon-purple);
+        }
+        
+        .header-stats {
+            display: flex;
+            gap: 25px;
+            font-size: 9px;
+            align-items: center;
+        }
+        
+        .header-stat {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+        
+        .led {
+            width: 7px;
+            height: 7px;
+            background: var(--neon-green);
+            border-radius: 50%;
+            animation: blink 1.2s infinite;
+            box-shadow: 0 0 10px var(--neon-green);
+        }
+        
+        @keyframes blink {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.3; }
+        }
+        
+        /* Panel base */
+        .panel {
+            background: var(--panel-bg);
+            border: 1px solid var(--border-color);
+            position: relative;
+            overflow: hidden;
+            box-shadow: inset 0 0 20px rgba(0, 255, 65, 0.05);
+        }
+        
+        .panel::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 1px;
+            background: var(--neon-green);
+            opacity: 0.5;
+        }
+        
+        .panel-header {
+            padding: 10px 15px;
+            border-bottom: 1px solid var(--border-color);
+            font-size: 10px;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+            color: var(--neon-cyan);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            background: rgba(0, 0, 0, 0.5);
+        }
+        
+        .panel-content {
+            padding: 15px;
+            height: calc(100% - 41px);
+            overflow-y: auto;
+            overflow-x: hidden;
+        }
+        
+        /* Left sidebar - Agent modules */
+        .left-sidebar {
+            grid-row: 2 / 4;
+        }
+        
+        .modules-list {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+        
+        .module-item {
+            padding: 12px;
+            background: rgba(0, 0, 0, 0.6);
+            border-left: 3px solid var(--neon-green);
+            cursor: pointer;
+            transition: all 0.3s;
+            position: relative;
+        }
+        
+        .module-item:hover {
+            background: rgba(0, 255, 65, 0.1);
+            box-shadow: 0 0 20px rgba(0, 255, 65, 0.4);
+            transform: translateX(5px);
+            border-left-width: 5px;
+        }
+        
+        .module-item::after {
+            content: '';
+            position: absolute;
+            right: 0;
+            top: 0;
+            bottom: 0;
+            width: 2px;
+            background: linear-gradient(180deg, transparent, var(--neon-green), transparent);
+            opacity: 0;
+            transition: opacity 0.3s;
+        }
+        
+        .module-item:hover::after {
+            opacity: 0.6;
+        }
+        
+        .module-name {
+            font-weight: 700;
+            font-size: 11px;
+            margin-bottom: 6px;
+            letter-spacing: 1px;
+        }
+        
+        .module-status {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            font-size: 9px;
+            color: var(--neon-cyan);
+            margin-bottom: 6px;
+        }
+        
+        .status-dot {
+            width: 6px;
+            height: 6px;
+            background: var(--neon-green);
+            border-radius: 50%;
+            animation: blink 1.5s infinite;
+            box-shadow: 0 0 8px var(--neon-green);
+        }
+        
+        .module-data {
+            font-size: 7px;
+            color: rgba(0, 255, 65, 0.5);
+            line-height: 1.6;
+            font-family: monospace;
+        }
+        
+        .security-panel {
+            margin-top: 15px;
+        }
+        
+        .security-item {
+            font-size: 8px;
+            margin: 8px 0;
+            padding: 8px;
+            background: rgba(0, 0, 0, 0.4);
+            border-left: 2px solid var(--neon-purple);
+        }
+        
+        .threat-badge {
+            display: inline-block;
+            padding: 4px 10px;
+            font-size: 7px;
+            background: rgba(0, 255, 65, 0.2);
+            border: 1px solid var(--neon-green);
+            color: var(--neon-green);
+            margin-top: 10px;
+            letter-spacing: 1px;
+        }
+        
+        /* Center panels */
+        .center-area {
+            grid-row: 2 / 3;
+            display: flex;
+            flex-direction: column;
+            gap: 2px;
+        }
+        
+        .globe-panel {
+            flex: 1;
+            position: relative;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        
+        #globe-canvas {
+            width: 100%;
+            height: 100%;
+            filter: drop-shadow(0 0 20px rgba(0, 255, 65, 0.5));
+        }
+        
+        .globe-info {
+            position: absolute;
+            top: 15px;
+            left: 15px;
+            font-size: 9px;
+            background: rgba(0, 0, 0, 0.7);
+            padding: 10px;
+            border: 1px solid var(--border-color);
+        }
+        
+        .globe-stats {
+            position: absolute;
+            bottom: 15px;
+            right: 15px;
+            font-size: 8px;
+            text-align: right;
+            background: rgba(0, 0, 0, 0.7);
+            padding: 10px;
+            border: 1px solid var(--border-color);
+        }
+        
+        /* Terminal */
+        .terminal-panel {
+            flex: 1;
+        }
+        
+        .terminal {
+            background: rgba(0, 0, 0, 0.85);
+            padding: 15px;
+            height: 100%;
+            overflow-y: auto;
+            font-size: 11px;
+        }
+        
+        .terminal-line {
+            margin-bottom: 10px;
+            display: flex;
+        }
+        
+        .prompt {
+            color: var(--neon-cyan);
+            margin-right: 10px;
+            flex-shrink: 0;
+        }
+        
+        .terminal-output {
+            margin-left: 25px;
+            font-size: 10px;
+            line-height: 1.6;
+        }
+        
+        .output-ok {
+            color: var(--neon-green);
+        }
+        
+        .cursor {
+            display: inline-block;
+            width: 8px;
+            height: 15px;
+            background: var(--neon-green);
+            animation: cursorBlink 1s infinite;
+            margin-left: 3px;
+        }
+        
+        @keyframes cursorBlink {
+            0%, 50% { opacity: 1; }
+            51%, 100% { opacity: 0; }
+        }
+        
+        .terminal-input-container {
+            display: flex;
+            align-items: center;
+            margin-top: 10px;
+        }
+        
+        .terminal-input {
+            flex: 1;
+            background: transparent;
+            border: none;
+            outline: none;
+            color: var(--neon-green);
+            font-family: inherit;
+            font-size: 11px;
+            padding: 0;
+        }
+        
+        .terminal-input::placeholder {
+            color: rgba(0, 255, 65, 0.3);
+        }
+        
+        .ai-response {
+            margin: 15px 0;
+            padding: 12px;
+            background: rgba(0, 255, 65, 0.05);
+            border-left: 3px solid var(--neon-cyan);
+            color: var(--neon-cyan);
+            font-size: 10px;
+            line-height: 1.6;
+            animation: responseAppear 0.5s ease-out;
+        }
+        
+        @keyframes responseAppear {
+            from {
+                opacity: 0;
+                transform: translateY(10px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+        
+        .response-header {
+            color: var(--neon-purple);
+            font-weight: 700;
+            margin-bottom: 8px;
+            font-size: 9px;
+        }
+        
+        .processing-indicator {
+            display: inline-flex;
+            align-items: center;
+            gap: 5px;
+            color: var(--neon-cyan);
+            font-size: 10px;
+            margin: 10px 0;
+        }
+        
+        .processing-dot {
+            width: 4px;
+            height: 4px;
+            background: var(--neon-cyan);
+            border-radius: 50%;
+            animation: processingPulse 1.5s infinite;
+        }
+        
+        .processing-dot:nth-child(2) {
+            animation-delay: 0.3s;
+        }
+        
+        .processing-dot:nth-child(3) {
+            animation-delay: 0.6s;
+        }
+        
+        @keyframes processingPulse {
+            0%, 100% { opacity: 0.3; transform: scale(1); }
+            50% { opacity: 1; transform: scale(1.5); }
+        }
+        
+        .terminal-controls {
+            display: flex;
+            gap: 6px;
+        }
+        
+        .ctrl-btn {
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+        }
+        
+        .ctrl-btn.red { background: var(--neon-red); box-shadow: 0 0 5px var(--neon-red); }
+        .ctrl-btn.yellow { background: #ffdd00; box-shadow: 0 0 5px #ffdd00; }
+        .ctrl-btn.green { background: var(--neon-green); box-shadow: 0 0 5px var(--neon-green); }
+        
+        /* Right sidebar - Logs */
+        .right-sidebar {
+            grid-row: 2 / 4;
+            display: flex;
+            flex-direction: column;
+            gap: 2px;
+        }
+        
+        .logs-panel {
+            flex: 1;
+        }
+        
+        .log-entry {
+            margin-bottom: 12px;
+            padding: 10px;
+            background: rgba(0, 0, 0, 0.7);
+            border-left: 2px solid var(--neon-cyan);
+            animation: slideIn 0.4s ease-out;
+            font-size: 9px;
+            line-height: 1.5;
+        }
+        
+        @keyframes slideIn {
+            from {
+                opacity: 0;
+                transform: translateX(30px);
+            }
+            to {
+                opacity: 1;
+                transform: translateX(0);
+            }
+        }
+        
+        .log-timestamp {
+            color: rgba(0, 255, 255, 0.6);
+            font-size: 7px;
+            margin-bottom: 4px;
+        }
+        
+        .log-agent {
+            color: var(--neon-purple);
+            font-weight: 700;
+            margin-bottom: 4px;
+            font-size: 9px;
+        }
+        
+        .log-message {
+            color: rgba(0, 255, 65, 0.9);
+            font-size: 8px;
+        }
+        
+        .packet-panel {
+            height: 180px;
+        }
+        
+        .packet-stream {
+            font-size: 7px;
+            color: rgba(0, 255, 65, 0.5);
+            line-height: 1.4;
+            font-family: monospace;
+        }
+        
+        /* Far right sidebar */
+        .far-right-sidebar {
+            grid-row: 2 / 4;
+            display: flex;
+            flex-direction: column;
+            gap: 2px;
+        }
+        
+        .metrics-panel {
+            flex: 1;
+        }
+        
+        .metric-row {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 12px;
+            font-size: 9px;
+            padding: 8px;
+            background: rgba(0, 0, 0, 0.5);
+            border-left: 2px solid rgba(0, 255, 65, 0.3);
+        }
+        
+        .metric-label {
+            color: rgba(0, 255, 65, 0.7);
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+        
+        .metric-value {
+            color: var(--neon-cyan);
+            font-weight: 700;
+        }
+        
+        .progress-bar {
+            height: 6px;
+            background: rgba(0, 255, 65, 0.2);
+            margin-top: 8px;
+            position: relative;
+            overflow: hidden;
+            border: 1px solid rgba(0, 255, 65, 0.3);
+        }
+        
+        .progress-fill {
+            height: 100%;
+            background: var(--neon-green);
+            box-shadow: 0 0 10px var(--neon-green);
+            transition: width 0.5s;
+        }
+        
+        .connection-panel {
+            height: 240px;
+        }
+        
+        .ip-item {
+            font-size: 8px;
+            margin: 8px 0;
+            padding: 6px;
+            background: rgba(0, 0, 0, 0.5);
+            border-left: 2px solid var(--neon-cyan);
+            color: rgba(0, 255, 65, 0.8);
+        }
+        
+        .connection-stats {
+            margin-top: 15px;
+            font-size: 7px;
+            padding: 10px;
+            background: rgba(0, 0, 0, 0.6);
+            border: 1px solid var(--border-color);
+        }
+        
+        .stat-line {
+            display: flex;
+            justify-content: space-between;
+            margin: 5px 0;
+        }
+        
+        /* Bottom row panels */
+        .bottom-row {
+            grid-column: 1 / -1;
+            display: grid;
+            grid-template-columns: 240px 1fr 360px 280px;
+            gap: 2px;
+        }
+        
+        .hexdump-panel {
+            font-size: 7px;
+            line-height: 1.4;
+            color: rgba(0, 255, 65, 0.4);
+            font-family: monospace;
+            overflow: hidden;
+        }
+        
+        .network-viz {
+            position: relative;
+            height: 100%;
+        }
+        
+        .node-point {
+            position: absolute;
+            width: 6px;
+            height: 6px;
+            background: var(--neon-cyan);
+            border-radius: 50%;
+            box-shadow: 0 0 10px var(--neon-cyan);
+        }
+        
+        .waveform-canvas {
+            width: 100%;
+            height: 100%;
+        }
+        
+        .process-list {
+            font-size: 7px;
+            line-height: 1.6;
+            color: rgba(0, 255, 65, 0.7);
+            font-family: monospace;
+        }
+        
+        /* Scrollbar */
+        ::-webkit-scrollbar {
+            width: 6px;
+        }
+        
+        ::-webkit-scrollbar-track {
+            background: rgba(0, 0, 0, 0.5);
+        }
+        
+        ::-webkit-scrollbar-thumb {
+            background: var(--neon-green);
+            box-shadow: 0 0 5px var(--neon-green);
+        }
+        
+        ::-webkit-scrollbar-thumb:hover {
+            background: var(--neon-cyan);
+        }
+    </style>
+</head>
+<body>
+    <canvas id="matrix-canvas"></canvas>
+    
+    <div class="dashboard">
+        <!-- Header -->
+        <div class="header">
+            <div>
+                <div class="logo">POLYAI</div>
+                <div class="subtitle">
+                    OFFLINE MULTI-AGENT AI SUMMARIZATION ENGINE
+                    <span class="tag secure">[SECURE]</span>
+                    <span class="tag offline">[OFFLINE]</span>
+                    <span class="tag encrypted">[AES-256]</span>
+                </div>
+            </div>
+            <div class="header-stats">
+                <div class="header-stat">
+                    <div class="led"></div>
+                    <span>SYS: <span style="color: var(--neon-cyan); font-weight: 700;">ACTIVE</span></span>
+                </div>
+                <div class="header-stat">
+                    <div class="led"></div>
+                    <span>MESH: <span style="color: var(--neon-cyan); font-weight: 700;">4 NODES</span></span>
+                </div>
+                <div class="header-stat">
+                    <div class="led"></div>
+                    <span>LAT: <span style="color: var(--neon-cyan); font-weight: 700;" id="latency">20ms</span></span>
+                </div>
+                <div class="header-stat">
+                    <span>SESSION: <span style="color: var(--neon-cyan); font-weight: 700;">0xDEADBEEF</span></span>
+                </div>
+                <div class="header-stat">
+                    <span>UPTIME: <span style="color: var(--neon-cyan); font-weight: 700;" id="uptime">00:12:32</span></span>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Left Sidebar -->
+        <div class="left-sidebar panel">
+            <div class="panel-header">
+                <span>ACTIVE AGENTS</span>
+                <span style="color: var(--neon-green); font-weight: 700;">4/4</span>
+            </div>
+            <div class="panel-content">
+                <div class="modules-list">
+                    <div class="module-item">
+                        <div class="module-name">REASONING_AGENT</div>
+                        <div class="module-status">
+                            <div class="status-dot"></div>
+                            <span>ONLINE</span>
+                        </div>
+                        <div class="module-data">PID: 0x4A2F | MEM: 1.2GB | CPU: 34%</div>
+                        <div class="module-data">HASH: a7f9b2c4e1d8f3a6</div>
+                    </div>
+                    <div class="module-item">
+                        <div class="module-name">VERIFICATION_AGENT</div>
+                        <div class="module-status">
+                            <div class="status-dot"></div>
+                            <span>ONLINE</span>
+                        </div>
+                        <div class="module-data">PID: 0x7B3C | MEM: 0.9GB | CPU: 28%</div>
+                        <div class="module-data">HASH: 9e4c2b1a7f3d8e6c</div>
+                    </div>
+                    <div class="module-item">
+                        <div class="module-name">CRITIQUE_AGENT</div>
+                        <div class="module-status">
+                            <div class="status-dot"></div>
+                            <span>ONLINE</span>
+                        </div>
+                        <div class="module-data">PID: 0x9E1D | MEM: 1.1GB | CPU: 41%</div>
+                        <div class="module-data">HASH: b3f7a9c2d4e6f1b8</div>
+                    </div>
+                    <div class="module-item">
+                        <div class="module-name">SIMPLIFY_AGENT</div>
+                        <div class="module-status">
+                            <div class="status-dot"></div>
+                            <span>ONLINE</span>
+                        </div>
+                        <div class="module-data">PID: 0x2C8A | MEM: 0.8GB | CPU: 22%</div>
+                        <div class="module-data">HASH: c8d2e9f4a1b7c3d6</div>
+                    </div>
+                </div>
+                
+                <div class="security-panel">
+                    <div class="panel-header" style="margin: 15px -15px 10px -15px; padding: 10px 15px;">
+                        <span>SECURITY</span>
+                        <div class="led"></div>
+                    </div>
+                    <div class="security-item">
+                        <div style="color: var(--neon-purple); margin-bottom: 5px;">ENCRYPTION STATUS:</div>
+                        <div style="font-size: 7px;">AES-256-GCM: ACTIVE</div>
+                        <div style="font-size: 7px;">RSA-4096: ENABLED</div>
+                    </div>
+                    <div class="threat-badge">THREAT LEVEL: ZERO</div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Center Area -->
+        <div class="center-area">
+            <!-- Globe -->
+            <div class="globe-panel panel">
+                <div class="panel-header" style="position: absolute; top: 0; left: 0; right: 0; z-index: 10;">
+                    <span>GLOBAL NEURAL MESH</span>
+                </div>
+                <canvas id="globe-canvas"></canvas>
+                <div class="globe-info">
+                    <div style="color: var(--neon-cyan); margin-bottom: 5px; font-weight: 700;">NODES: 247 | ACTIVE: 247</div>
+                </div>
+                <div class="globe-stats">
+                    <div>SYNC: 99.8%</div>
+                    <div>BANDWIDTH: 2.4 TB/s</div>
+                </div>
+            </div>
+            
+            <!-- Terminal -->
+            <div class="terminal-panel panel">
+                <div class="panel-header">
+                    <span>COMMAND INTERFACE</span>
+                    <div class="terminal-controls">
+                        <div class="ctrl-btn red"></div>
+                        <div class="ctrl-btn yellow"></div>
+                        <div class="ctrl-btn green"></div>
+                    </div>
+                </div>
+                <div class="terminal" id="terminal">
+                    <div class="terminal-line">
+                        <span class="prompt">root@polyai:~$</span>
+                        <span>system.initialize()</span>
+                    </div>
+                    <div class="terminal-output output-ok">
+                        [OK] Neural mesh initialized<br>
+                        [OK] 4 agents connected and synchronized<br>
+                        [OK] Encryption layer active: AES-256-GCM<br>
+                        [OK] Memory pool allocated: 4.0GB<br>
+                        [OK] Ready for input
+                    </div>
+                    <div class="terminal-input-container" style="margin-top: 15px;">
+                        <span class="prompt">root@polyai:~$</span>
+                        <input type="text" 
+                               class="terminal-input" 
+                               id="userInput" 
+                               placeholder="Enter text to summarize or command to execute..."
+                               autocomplete="off">
+                    </div>
+                    <div id="terminalOutput"></div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Right Sidebar - Logs -->
+        <div class="right-sidebar">
+            <div class="logs-panel panel">
+                <div class="panel-header">
+                    <span>AGENT DEBATE FEED</span>
+                    <div class="led"></div>
+                </div>
+                <div class="panel-content" id="logContainer"></div>
+            </div>
+            
+            <div class="packet-panel panel">
+                <div class="panel-header">
+                    <span>PACKET STREAM</span>
+                </div>
+                <div class="panel-content">
+                    <div class="packet-stream" id="packetStream"></div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Far Right Sidebar -->
+        <div class="far-right-sidebar">
+            <div class="metrics-panel panel">
+                <div class="panel-header">
+                    <span>SYSTEM METRICS</span>
+                </div>
+                <div class="panel-content">
+                    <div class="metric-row">
+                        <span class="metric-label">CPU Load</span>
+                        <span class="metric-value" id="cpu">60.7%</span>
+                    </div>
+                    <div class="progress-bar">
+                        <div class="progress-fill" id="cpuBar" style="width: 60%;"></div>
+                    </div>
+                    
+                    <div class="metric-row">
+                        <span class="metric-label">RAM Usage</span>
+                        <span class="metric-value" id="ram">7.3 GB</span>
+                    </div>
+                    <div class="progress-bar">
+                        <div class="progress-fill" id="ramBar" style="width: 73%;"></div>
+                    </div>
+                    
+                    <div class="metric-row">
+                        <span class="metric-label">GPU VRAM</span>
+                        <span class="metric-value">11.2 GB</span>
+                    </div>
+                    
+                    <div class="metric-row">
+                        <span class="metric-label">Disk I/O</span>
+                        <span class="metric-value" id="diskio">301 MB/s</span>
+                    </div>
+                    
+                    <div class="metric-row">
+                        <span class="metric-label">Network</span>
+                        <span class="metric-value">0 MB/s</span>
+                    </div>
+                    
+                    <div class="metric-row">
+                        <span class="metric-label">Threads</span>
+                        <span class="metric-value" id="threads">163</span>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="connection-panel panel">
+                <div class="panel-header">
+                    <span>CONNECTION POOL</span>
+                </div>
+                <div class="panel-content">
+                    <div class="ip-item">LOCALHOST: 127.0.0.1:8080</div>
+                    <div class="ip-item">NODE_A: 10.0.1.42:9000</div>
+                    <div class="ip-item">NODE_B: 10.0.1.43:9000</div>
+                    <div class="ip-item">NODE_C: 10.0.1.44:9000</div>
+                    <div class="ip-item">NODE_D: 10.0.1.45:9000</div>
+                    
+                    <div class="connection-stats">
+                        <div class="stat-line">
+                            <span style="color: rgba(0,255,65,0.6);">PACKETS SENT:</span>
+                            <span style="color: var(--neon-cyan); font-weight: 700;">1,207,832</span>
+                        </div>
+                        <div class="stat-line">
+                            <span style="color: rgba(0,255,65,0.6);">PACKETS RECV:</span>
+                            <span style="color: var(--neon-cyan); font-weight: 700;">1,207,829</span>
+                        </div>
+                        <div class="stat-line">
+                            <span style="color: rgba(0,255,65,0.6);">PACKET LOSS:</span>
+                            <span style="color: var(--neon-green); font-weight: 700;">0.00%</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Bottom Row -->
+        <div class="bottom-row">
+            <div class="panel">
+                <div class="panel-header" style="font-size: 9px;">
+                    <span>MEMORY HEXDUMP</span>
+                </div>
+                <div class="panel-content hexdump-panel" id="hexdump"></div>
+            </div>
+            
+            <div class="panel">
+                <div class="panel-header" style="font-size: 9px;">
+                    <span>NEURAL TOPOLOGY</span>
+                </div>
+                <div class="panel-content network-viz" id="networkViz"></div>
+            </div>
+            
+            <div class="panel">
+                <div class="panel-header" style="font-size: 9px;">
+                    <span>WAVEFORM ANALYSIS</span>
+                </div>
+                <div class="panel-content" style="padding: 0;">
+                    <canvas class="waveform-canvas" id="waveform"></canvas>
+                </div>
+            </div>
+            
+            <div class="panel">
+                <div class="panel-header" style="font-size: 9px;">
+                    <span>PROCESS TABLE</span>
+                </div>
+                <div class="panel-content process-list" id="processTable"></div>
+            </div>
+        </div>
+    </div>
+    
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <script>
+        // Matrix rain
+        const matrixCanvas = document.getElementById('matrix-canvas');
+        const matrixCtx = matrixCanvas.getContext('2d');
+        matrixCanvas.width = window.innerWidth;
+        matrixCanvas.height = window.innerHeight;
+        
+        const chars = '01アイウエオカキクケコサシスセソタチツテトナニヌネノハヒフヘホマミムメモヤユヨラリルレロワヲン';
+        const fontSize = 14;
+        const columns = Math.floor(matrixCanvas.width / fontSize);
+        const drops = Array(columns).fill(1);
+        
+        function drawMatrix() {
+            matrixCtx.fillStyle = 'rgba(0, 0, 0, 0.05)';
+            matrixCtx.fillRect(0, 0, matrixCanvas.width, matrixCanvas.height);
+            matrixCtx.fillStyle = '#00ff41';
+            matrixCtx.font = fontSize + 'px monospace';
+            
+            for (let i = 0; i < drops.length; i++) {
+                const text = chars[Math.floor(Math.random() * chars.length)];
+                matrixCtx.fillText(text, i * fontSize, drops[i] * fontSize);
+                if (drops[i] * fontSize > matrixCanvas.height && Math.random() > 0.975) {
+                    drops[i] = 0;
+                }
+                drops[i]++;
+            }
+        }
+        setInterval(drawMatrix, 50);
+        
+        // 3D Globe
+        const globeCanvas = document.getElementById('globe-canvas');
+        const scene = new THREE.Scene();
+        const camera = new THREE.PerspectiveCamera(50, globeCanvas.clientWidth / globeCanvas.clientHeight, 0.1, 1000);
+        const renderer = new THREE.WebGLRenderer({ canvas: globeCanvas, alpha: true, antialias: true });
+        renderer.setSize(globeCanvas.clientWidth, globeCanvas.clientHeight);
+        renderer.setClearColor(0x000000, 0);
+        
+        // Globe sphere
+        const geometry = new THREE.SphereGeometry(2.5, 40, 40);
+        const material = new THREE.MeshBasicMaterial({
+            color: 0x00ff41,
+            wireframe: true,
+            transparent: true,
+            opacity: 0.4
+        });
+        const globe = new THREE.Mesh(geometry, material);
+        scene.add(globe);
+        
+        // Inner glow
+        const glowGeometry = new THREE.SphereGeometry(2.6, 40, 40);
+        const glowMaterial = new THREE.MeshBasicMaterial({
+            color: 0x00ff41,
+            transparent: true,
+            opacity: 0.1,
+            side: THREE.BackSide
+        });
+        const glow = new THREE.Mesh(glowGeometry, glowMaterial);
+        scene.add(glow);
+        
+        // Connection points
+        const points = [];
+        for (let i = 0; i < 80; i++) {
+            const phi = Math.acos(-1 + (2 * i) / 80);
+            const theta = Math.sqrt(80 * Math.PI) * phi;
+            
+            const x = 2.5 * Math.cos(theta) * Math.sin(phi);
+            const y = 2.5 * Math.sin(theta) * Math.sin(phi);
+            const z = 2.5 * Math.cos(phi);
+            
+            const pointGeometry = new THREE.SphereGeometry(0.03, 8, 8);
+            const pointMaterial = new THREE.MeshBasicMaterial({ color: 0x00ffff });
+            const point = new THREE.Mesh(pointGeometry, pointMaterial);
+            point.position.set(x, y, z);
+            scene.add(point);
+            points.push(point);
+        }
+        
+        // Connection lines
+        for (let i = 0; i < 50; i++) {
+            const p1 = points[Math.floor(Math.random() * points.length)];
+            const p2 = points[Math.floor(Math.random() * points.length)];
+            
+            const lineGeometry = new THREE.BufferGeometry().setFromPoints([p1.position, p2.position]);
+            const lineMaterial = new THREE.LineBasicMaterial({ 
+                color: 0x00ffff, 
+                transparent: true, 
+                opacity: 0.25 
+            });
+            const line = new THREE.Line(lineGeometry, lineMaterial);
+            scene.add(line);
+        }
+        
+        camera.position.z = 6;
+        
+        function animateGlobe() {
+            requestAnimationFrame(animateGlobe);
+            globe.rotation.y += 0.003;
+            globe.rotation.x += 0.001;
+            glow.rotation.y += 0.003;
+            glow.rotation.x += 0.001;
+            renderer.render(scene, camera);
+        }
+        animateGlobe();
+        
+        // System stats
+        let startTime = Date.now();
+        setInterval(() => {
+            const elapsed = Math.floor((Date.now() - startTime) / 1000);
+            const hours = Math.floor(elapsed / 3600).toString().padStart(2, '0');
+            const minutes = Math.floor((elapsed % 3600) / 60).toString().padStart(2, '0');
+            const seconds = (elapsed % 60).toString().padStart(2, '0');
+            document.getElementById('uptime').textContent = `${hours}:${minutes}:${seconds}`;
+            
+            const cpuVal = 30 + Math.random() * 40;
+            const ramVal = 5 + Math.random() * 3;
+            
+            document.getElementById('latency').textContent = Math.floor(Math.random() * 50) + 'ms';
+            document.getElementById('cpu').textContent = cpuVal.toFixed(1) + '%';
+            document.getElementById('ram').textContent = ramVal.toFixed(1) + ' GB';
+            document.getElementById('diskio').textContent = Math.floor(100 + Math.random() * 300) + ' MB/s';
+            document.getElementById('threads').textContent = Math.floor(150 + Math.random() * 50);
+            
+            document.getElementById('cpuBar').style.width = cpuVal + '%';
+            document.getElementById('ramBar').style.width = (ramVal / 16 * 100) + '%';
+        }, 2000);
+        
+        // Logs
+        const logMessages = [
+            { agent: 'REASONING_AGENT', message: 'Identified 12 entity relationships' },
+            { agent: 'VERIFICATION_AGENT', message: 'Cross-referencing knowledge graph nodes' },
+            { agent: 'CRITIQUE_AGENT', message: 'Confidence threshold: 96.4%' },
+            { agent: 'SIMPLIFY_AGENT', message: 'Optimizing token compression ratio' },
+            { agent: 'REASONING_AGENT', message: 'Analyzing semantic structure and context' },
+            { agent: 'VERIFICATION_AGENT', message: 'Temporal validation: PASSED' },
+            { agent: 'CRITIQUE_AGENT', message: 'Evaluating logical consistency and bias detection' },
+            { agent: 'SIMPLIFY_AGENT', message: 'Reduced complexity by 71%' },
+            { agent: 'REASONING_AGENT', message: 'Establishing causal inference chains' },
+            { agent: 'VERIFICATION_AGENT', message: 'Flagged potential contradiction in source' }
+        ];
+        
+        function addLog() {
+            const logContainer = document.getElementById('logContainer');
+            const randomLog = logMessages[Math.floor(Math.random() * logMessages.length)];
+            const timestamp = new Date().toISOString().split('T')[1].split('.')[0];
+            
+            const logEntry = document.createElement('div');
+            logEntry.className = 'log-entry';
+            logEntry.innerHTML = `
+                <div class="log-timestamp">[${timestamp}]</div>
+                <div class="log-agent">${randomLog.agent}</div>
+                <div class="log-message">${randomLog.message}</div>
+            `;
+            
+            logContainer.insertBefore(logEntry, logContainer.firstChild);
+            if (logContainer.children.length > 12) {
+                logContainer.removeChild(logContainer.lastChild);
+            }
+        }
+        
+        setInterval(addLog, 2500);
+        for (let i = 0; i < 6; i++) addLog();
+        
+        // Hexdump
+        function generateHexdump() {
+            let hex = '';
+            for (let i = 0; i < 20; i++) {
+                const addr = (0x7f0000000000 + i * 16).toString(16).toUpperCase().padStart(12, '0');
+                const bytes = Array(16).fill(0).map(() => 
+                    Math.floor(Math.random() * 256).toString(16).padStart(2, '0').toUpperCase()
+                ).join(' ');
+                hex += `${addr}: ${bytes}\n`;
+            }
+            document.getElementById('hexdump').textContent = hex;
+        }
+        generateHexdump();
+        setInterval(generateHexdump, 5000);
+        
+        // Network viz
+        function drawNetwork() {
+            const container = document.getElementById('networkViz');
+            container.innerHTML = '';
+            const positions = [];
+            
+            for (let i = 0; i < 12; i++) {
+                const node = document.createElement('div');
+                node.className = 'node-point';
+                const x = 10 + Math.random() * 80;
+                const y = 10 + Math.random() * 80;
+                node.style.left = x + '%';
+                node.style.top = y + '%';
+                container.appendChild(node);
+                positions.push({x, y});
+            }
+        }
+        drawNetwork();
+        setInterval(drawNetwork, 8000);
+        
+        // Waveform
+        const waveCanvas = document.getElementById('waveform');
+        const waveCtx = waveCanvas.getContext('2d');
+        waveCanvas.width = waveCanvas.clientWidth;
+        waveCanvas.height = waveCanvas.clientHeight;
+        
+        function drawWaveform() {
+            waveCtx.fillStyle = 'rgba(0, 0, 0, 0.1)';
+            waveCtx.fillRect(0, 0, waveCanvas.width, waveCanvas.height);
+            waveCtx.strokeStyle = '#00ff41';
+            waveCtx.lineWidth = 1.5;
+            waveCtx.beginPath();
+            
+            for (let x = 0; x < waveCanvas.width; x++) {
+                const y = waveCanvas.height / 2 + 
+                    Math.sin(x * 0.04 + Date.now() * 0.008) * 25 * 
+                    Math.sin(x * 0.015);
+                if (x === 0) waveCtx.moveTo(x, y);
+                else waveCtx.lineTo(x, y);
+            }
+            waveCtx.stroke();
+        }
+        setInterval(drawWaveform, 50);
+        
+        // Process table
+        function updateProcessTable() {
+            const processes = [
+                'polyai-core',
+                'reasoning-engine',
+                'verify-daemon',
+                'critique-worker',
+                'simplify-proc',
+                'neural-mesh',
+                'crypto-layer'
+            ];
+            let table = '';
+            processes.forEach((proc) => {
+                const pid = 1000 + Math.floor(Math.random() * 9000);
+                const cpu = (Math.random() * 50).toFixed(1);
+                table += `${pid}  ${proc.padEnd(20)}  ${cpu}%\n`;
+            });
+            document.getElementById('processTable').textContent = table;
+        }
+        updateProcessTable();
+        setInterval(updateProcessTable, 3000);
+        
+        // Packet stream
+        function generatePacketStream() {
+            let stream = '';
+            for (let i = 0; i < 40; i++) {
+                stream += `PKT_${Math.floor(Math.random() * 99999).toString().padStart(5, '0')} | `;
+                stream += `SRC: 10.0.1.${Math.floor(Math.random() * 255)} | `;
+                stream += `DST: 10.0.1.${Math.floor(Math.random() * 255)} | `;
+                stream += `SIZE: ${Math.floor(Math.random() * 1500)}B | `;
+                stream += `SEQ: ${Math.floor(Math.random() * 65535)}\n`;
+            }
+            document.getElementById('packetStream').textContent = stream;
+        }
+        generatePacketStream();
+        setInterval(generatePacketStream, 6000);
+        
+        // Resize handler
+        window.addEventListener('resize', () => {
+            matrixCanvas.width = window.innerWidth;
+            matrixCanvas.height = window.innerHeight;
+            camera.aspect = globeCanvas.clientWidth / globeCanvas.clientHeight;
+            camera.updateProjectionMatrix();
+            renderer.setSize(globeCanvas.clientWidth, globeCanvas.clientHeight);
+            waveCanvas.width = waveCanvas.clientWidth;
+            waveCanvas.height = waveCanvas.clientHeight;
+        });
+        
+        // AI Response System
+        const userInput = document.getElementById('userInput');
+        const terminalOutput = document.getElementById('terminalOutput');
+        const terminal = document.getElementById('terminal');
+        
+        const aiResponses = [
+            "Analysis complete. Input processed through multi-agent pipeline. Key entities extracted and relationships mapped. Confidence level: 94.7%. Summary generated with 68% compression ratio.",
+            "Neural mesh consensus achieved. Reasoning agent identified 7 semantic clusters. Verification agent cross-referenced 142 knowledge nodes. Critique agent validated logical consistency. Output optimized.",
+            "Processing complete. Temporal analysis reveals causal chains across 5 domains. Factual verification passed with 96.2% confidence. Bias detection flagged 2 potential issues. Summary refined and compressed.",
+            "Multi-agent debate concluded. Reasoning layer established hierarchical structure. Verification layer confirmed accuracy. Critique layer enhanced clarity. Final output: coherent summary with 73% token reduction.",
+            "Task execution successful. Deep semantic analysis performed. Entity relationship graph constructed with 89 nodes. Knowledge base queries returned 247 matches. Summary generated with high fidelity.",
+            "Agent consensus reached. Input tokenized and distributed across neural mesh. Parallel processing completed in 1.2 seconds. Output synthesized from 4 independent agent perspectives. Quality score: 97.3%."
+        ];
+        
+        let isProcessing = false;
+        
+        function simulateAgentActivity() {
+            // Add extra logs during processing
+            const processingLogs = [
+                { agent: 'REASONING_AGENT', message: 'Breaking down input into semantic components...' },
+                { agent: 'VERIFICATION_AGENT', message: 'Querying knowledge base for factual validation...' },
+                { agent: 'CRITIQUE_AGENT', message: 'Analyzing for logical fallacies and bias...' },
+                { agent: 'SIMPLIFY_AGENT', message: 'Computing optimal compression strategy...' }
+            ];
+            
+            processingLogs.forEach((log, index) => {
+                setTimeout(() => {
+                    const logContainer = document.getElementById('logContainer');
+                    const timestamp = new Date().toISOString().split('T')[1].split('.')[0];
+                    
+                    const logEntry = document.createElement('div');
+                    logEntry.className = 'log-entry';
+                    logEntry.innerHTML = `
+                        <div class="log-timestamp">[${timestamp}]</div>
+                        <div class="log-agent">${log.agent}</div>
+                        <div class="log-message">${log.message}</div>
+                    `;
+                    
+                    logContainer.insertBefore(logEntry, logContainer.firstChild);
+                    if (logContainer.children.length > 12) {
+                        logContainer.removeChild(logContainer.lastChild);
+                    }
+                }, index * 800);
+            });
+        }
+        
+        function processInput(text) {
+            if (!text.trim() || isProcessing) return;
+            
+            isProcessing = true;
+            
+            // Display user input
+            const inputLine = document.createElement('div');
+            inputLine.className = 'terminal-line';
+            inputLine.style.marginTop = '20px';
+            inputLine.innerHTML = `
+                <span class="prompt">root@polyai:~$</span>
+                <span style="color: var(--neon-green);">${text}</span>
+            `;
+            terminalOutput.appendChild(inputLine);
+            
+            // Show processing indicator
+            const processingDiv = document.createElement('div');
+            processingDiv.className = 'processing-indicator';
+            processingDiv.innerHTML = `
+                <span style="margin-right: 5px;">Processing through agent mesh</span>
+                <div class="processing-dot"></div>
+                <div class="processing-dot"></div>
+                <div class="processing-dot"></div>
+            `;
+            terminalOutput.appendChild(processingDiv);
+            
+            // Trigger agent activity
+            simulateAgentActivity();
+            
+            // Simulate AI processing delay
+            setTimeout(() => {
+                // Remove processing indicator
+                terminalOutput.removeChild(processingDiv);
+                
+                // Add AI response
+                const response = aiResponses[Math.floor(Math.random() * aiResponses.length)];
+                const responseDiv = document.createElement('div');
+                responseDiv.className = 'ai-response';
+                responseDiv.innerHTML = `
+                    <div class="response-header">[POLYAI RESPONSE]</div>
+                    <div>${response}</div>
+                `;
+                terminalOutput.appendChild(responseDiv);
+                
+                // Scroll to bottom
+                terminal.scrollTop = terminal.scrollHeight;
+                
+                // Clear input
+                userInput.value = '';
+                isProcessing = false;
+                
+                // Add completion log
+                setTimeout(() => {
+                    const logContainer = document.getElementById('logContainer');
+                    const timestamp = new Date().toISOString().split('T')[1].split('.')[0];
+                    const logEntry = document.createElement('div');
+                    logEntry.className = 'log-entry';
+                    logEntry.innerHTML = `
+                        <div class="log-timestamp">[${timestamp}]</div>
+                        <div class="log-agent">SYSTEM</div>
+                        <div class="log-message" style="color: var(--neon-green);">Task completed successfully. All agents synchronized.</div>
+                    `;
+                    logContainer.insertBefore(logEntry, logContainer.firstChild);
+                }, 500);
+                
+            }, 3500); // 3.5 second processing time
+        }
+        
+        // Enter key handler
+        userInput.addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') {
+                processInput(userInput.value);
+            }
+        });
+        
+        // Focus input on load
+        userInput.focus();
+    </script>
+</body>
+</html>
